@@ -1,17 +1,18 @@
 from nba_api.stats.endpoints import playercareerstats
-from nba_api.stats.endpoints import boxscoretraditionalv2
 from nba_api.stats.endpoints import leaguegamefinder
+from nba_api.stats.static import players
 import numpy as np
-
 import pandas as pd
+import matplotlib.pyplot as plt
+
 pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 pd.set_option('display.width', None)
 
-career = playercareerstats.PlayerCareerStats(player_id='203999') 
 
-# pandas data frames (optional: pip install pandas)
-df = pd.DataFrame(career.get_data_frames()[0])
-ud = df[["PLAYER_ID", "TEAM_ID", "GP", "GS", "FGM", "FG3M", "FTM", "MIN", "REB", "AST", "STL", "BLK", "TOV", "PTS"]]
+
+
+# ud = df[["PLAYER_ID", "TEAM_ID", "GP", "GS", "FGM", "FG3M", "FTM", "MIN", "REB", "AST", "STL", "BLK", "TOV", "PTS"]]
 # ud means usefulData
 
 # ud["PTC"] = ud["FGM"] + ud["FTM"]
@@ -28,22 +29,51 @@ ud = df[["PLAYER_ID", "TEAM_ID", "GP", "GS", "FGM", "FG3M", "FTM", "MIN", "REB",
 # df = boxscore.get_data_frames()[0]
 # print(df.head())
 
+def get_all_active_players():
+    df = pd.DataFrame(players.get_active_players())
+    df = df[["id", "full_name"]]
+    return df
 
-games = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='P', player_id_nullable=203999)  # Jokic
-df = games.get_data_frames()[0]
-indGames = df[["PLAYER_ID", 'GAME_DATE', 'MATCHUP', "TEAM_ID", "FGM", "FG3M", "FTM", "MIN", "REB", "AST", "STL", "BLK", "TOV", "PTS"]]
-print(indGames)
+def individual_game_stats(games_df):
+    df = games_df[["PLAYER_ID", 'GAME_DATE', 'MATCHUP', "TEAM_ID", "FTA", "FTM", "FGA", "FGM", "FG3A", "FG3M", "MIN", "REB", "AST", "STL", "BLK", "TOV", "PTS"]].copy()
+    df["FPTS"] = df["PTS"] + df["REB"] + df["AST"] * 2 + (df["STL"] + df["BLK"]) * 4 - df["TOV"] * 2 + df["FG3M"] + df["FGM"] * 2 + df["FTM"] - df["FTA"] - df["FGA"]
+    df["FPTS/MIN"] = round(df["FPTS"] / df["MIN"], 3)
+    df["AST:TOV"] = np.where(
+        df["TOV"] == 0,       # if turnovers are zero
+        np.nan,               # or you could use np.inf, 0, etc.
+        round(df["AST"] / df["TOV"], 3)
+    )
 
-newDF = indGames
-newDF = newDF.copy()
-newDF["PTC"] = newDF["FGM"] + newDF["FTM"]
-newDF["G(X)"] = newDF["PTC"] + newDF["REB"] + newDF["AST"] + newDF["STL"]
-newDF["G(X)/MIN"] = round(newDF["G(X)"] / newDF["MIN"], 2)
-newDF["AST:TOV"] = np.where(
-    newDF["TOV"] == 0,       # if turnovers are zero
-    np.nan,               # or you could use np.inf, 0, etc.
-    round(newDF["AST"] / newDF["TOV"], 2)
-)
-print(newDF)
-# newDF["PTC"]
+    df["TS%"] = np.where(
+        (df["FGA"] + 0.44 * df["FTA"]) == 0,
+        np.nan,
+        round(df["PTS"] / (2 * (df["FGA"] + 0.44 * df["FTA"])), 3)
+    )
+    return df
+
+def graph_utility(df):
+    df = df[::-1]
+    plt.scatter(df["GAME_DATE"], df["FPTS"])
+    plt.xlabel('Game Date')
+    plt.ylabel('FPTS')
+    plt.title('Grayson Allen')
+
+    plt.show()
+
+
+if __name__ == "__main__":
+    career = playercareerstats.PlayerCareerStats(player_id='203999')
+    careerdf = pd.DataFrame(career.get_data_frames()[0])
+    # print(careerdf)
+
+    actives = get_all_active_players()
+
+    games = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='P', player_id_nullable=1628960)
+    gamesdf = pd.DataFrame(games.get_data_frames()[0])
+    igs = individual_game_stats(gamesdf)
+    print(igs.head())
+
+    graph_utility(igs[:10])
+
+
 

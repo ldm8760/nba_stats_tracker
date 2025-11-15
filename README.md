@@ -1,40 +1,24 @@
 NBA Stats tracker / assistant
 
+*Teams*
+
 What makes a current team good:
 
 Net rating = Offensive rating - defensive rating
 
+*Players*
+
 NBA statistical analysis
 
-Game utility stat:
+FPTS
+FPTS/MIN
+AST:TOV
+TS%
 
-PTC + REB + AST + STL
 
-Where PTC = |PTS|
-PTC = (FGM - FG3M) x 2 + FG3M x 3 + FTM
-
-Giving us the Game utility function
-
-G(X)
-
-Where X = {Games}
-
-This has to be adjusted, does not consider each game
-
-G(X) can be compared to:
-Blocks
-Points?
-Turnovers
-Minutes
-
-Basic stats I probably need:
-0 PlAYER_ID
-3 GP
-4 GS
-5 MIN
-17 REB
-18 AST
-19 STL
-20 BLK
-21 TOV
-23 PTS
+LeagueGameFinder allows for:
+'SEASON_ID', 'PLAYER_ID', 'PLAYER_NAME', 'TEAM_ID', 'TEAM_ABBREVIATION',
+'TEAM_NAME', 'GAME_ID', 'GAME_DATE', 'MATCHUP', 'WL', 'MIN', 'PTS',
+'FGM', 'FGA', 'FG_PCT', 'FG3M', 'FG3A', 'FG3_PCT', 'FTM', 'FTA',
+'FT_PCT', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TOV', 'PF',
+'PLUS_MINUS'
