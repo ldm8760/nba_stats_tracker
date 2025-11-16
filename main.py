@@ -1,6 +1,9 @@
 from nba_api.stats.endpoints import playercareerstats
 from nba_api.stats.endpoints import leaguegamefinder
 from nba_api.stats.static import players
+from nba_api.stats.endpoints import teamgamelog
+from nba_api.stats.static import teams
+from nba_api.stats.endpoints import boxscorematchupsv3
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -35,7 +38,7 @@ def get_all_active_players():
     return df
 
 def individual_game_stats(games_df):
-    df = games_df[["PLAYER_ID", 'GAME_DATE', 'MATCHUP', "TEAM_ID", "FTA", "FTM", "FGA", "FGM", "FG3A", "FG3M", "MIN", "REB", "AST", "STL", "BLK", "TOV", "PTS"]].copy()
+    df = games_df[["PLAYER_ID", "SEASON_ID", 'GAME_DATE', 'MATCHUP', "TEAM_ID", "FTA", "FTM", "FGA", "FGM", "FG3A", "FG3M", "MIN", "REB", "AST", "STL", "BLK", "TOV", "PTS"]].copy()
     df["FPTS"] = df["PTS"] + df["REB"] + df["AST"] * 2 + (df["STL"] + df["BLK"]) * 4 - df["TOV"] * 2 + df["FG3M"] + df["FGM"] * 2 + df["FTM"] - df["FTA"] - df["FGA"]
     df["FPTS/MIN"] = round(df["FPTS"] / df["MIN"], 3)
     df["AST:TOV"] = np.where(
@@ -51,13 +54,36 @@ def individual_game_stats(games_df):
     )
     return df
 
+def get_all_teams():
+    # may not be used
+    df = pd.DataFrame(teams.get_teams())
+    print(df)
+
+def get_season_match_data(gameid: str):
+    box = boxscorematchupsv3.BoxScoreMatchupsV3(game_id=gameid)
+    teams_df = box.get_data_frames()[0]
+    """
+    Big fix needed here
+    Currently function needs the gameid which is irrelevant to the main function of the 
+    currently it will be easier to just sum up values of games for a team and compare 
+    for upcoming games
+    
+    however potentially for the future it may make sense to calculate important stats by the dates, to see values as the teams beat each other during the season"""
+
+    for i in teams_df["teamId"].unique():
+        team = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='T', team_id_nullable=i)
+        df = pd.DataFrame(team.get_data_frames()[0])
+        print(df.loc[df['SEASON_ID'] == "22025"])
+
+
+
 def graph_utility(df):
     df = df[::-1]
     plt.scatter(df["GAME_DATE"], df["FPTS"])
-    plt.xlabel('Game Date')
+    plt.xlabel('Game Date', ha="right")
     plt.ylabel('FPTS')
     plt.title('Grayson Allen')
-
+    plt.tight_layout()
     plt.show()
 
 
@@ -71,9 +97,22 @@ if __name__ == "__main__":
     games = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='P', player_id_nullable=1628960)
     gamesdf = pd.DataFrame(games.get_data_frames()[0])
     igs = individual_game_stats(gamesdf)
-    print(igs.head())
+    # print(igs[:25])
 
-    graph_utility(igs[:10])
+    # team = teamgamelog.TeamGameLog(team_id=1610612756)
+    team = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='T', team_id_nullable=1610612756)
+    teamdf = pd.DataFrame(team.get_data_frames()[0])
+    # print(teamdf.head())
+
+    box = boxscorematchupsv3.BoxScoreMatchupsV3(game_id="0022500190")
+    teams_df = box.get_data_frames()[0]
+    # print(teams_df["teamId"].unique())
+
+    get_season_match_data("0022500190")
+
+    # get_all_teams()
+    # graph_utility(igs[:25])
+
 
 
 

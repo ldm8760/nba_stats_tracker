@@ -15,6 +15,12 @@ FPTS/MIN
 AST:TOV
 TS%
 
+Now that I have all of these:
+Lets try to find out the teams
+
+Team data allows for:
+'id', 'full_name', 'abbreviation', 'nickname', 'city', 'state',
+'year_founded'
 
 LeagueGameFinder allows for:
 'SEASON_ID', 'PLAYER_ID', 'PLAYER_NAME', 'TEAM_ID', 'TEAM_ABBREVIATION',
