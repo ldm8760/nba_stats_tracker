@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
-pd.set_option('display.width', None)
+# pd.set_option('display.width', None)
 
 
 
@@ -62,6 +62,8 @@ def get_all_teams():
 def get_season_match_data(gameid: str):
     box = boxscorematchupsv3.BoxScoreMatchupsV3(game_id=gameid)
     teams_df = box.get_data_frames()[0]
+    # print(teams_df[["TEAM_ID", "GAME_ID", "GAME_DATE", "PTS", "FGA", ]])
+    print(teams_df["teamId"].unique())
     """
     Big fix needed here
     Currently function needs the gameid which is irrelevant to the main function of the 
@@ -73,7 +75,7 @@ def get_season_match_data(gameid: str):
     for i in teams_df["teamId"].unique():
         team = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='T', team_id_nullable=i)
         df = pd.DataFrame(team.get_data_frames()[0])
-        print(df.loc[df['SEASON_ID'] == "22025"])
+        # print(df.loc[df['SEASON_ID'] == "22025"])
 
 
 
@@ -90,23 +92,19 @@ def graph_utility(df):
 if __name__ == "__main__":
     career = playercareerstats.PlayerCareerStats(player_id='203999')
     careerdf = pd.DataFrame(career.get_data_frames()[0])
-    # print(careerdf)
+    print(careerdf)
 
     actives = get_all_active_players()
 
     games = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='P', player_id_nullable=1628960)
     gamesdf = pd.DataFrame(games.get_data_frames()[0])
     igs = individual_game_stats(gamesdf)
-    # print(igs[:25])
+    print(igs.head())
 
     # team = teamgamelog.TeamGameLog(team_id=1610612756)
     team = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='T', team_id_nullable=1610612756)
     teamdf = pd.DataFrame(team.get_data_frames()[0])
-    # print(teamdf.head())
-
-    box = boxscorematchupsv3.BoxScoreMatchupsV3(game_id="0022500190")
-    teams_df = box.get_data_frames()[0]
-    # print(teams_df["teamId"].unique())
+    print(teamdf.head())    
 
     get_season_match_data("0022500190")
 
