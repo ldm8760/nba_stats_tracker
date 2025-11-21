@@ -37,27 +37,56 @@ def get_all_active_players():
     df = df[["id", "full_name"]]
     return df
 
-def individual_game_stats(games_df):
-    df = games_df[["PLAYER_ID", "SEASON_ID", 'GAME_DATE', 'MATCHUP', "TEAM_ID", "FTA", "FTM", "FGA", "FGM", "FG3A", "FG3M", "MIN", "REB", "AST", "STL", "BLK", "TOV", "PTS"]].copy()
-    df["FPTS"] = df["PTS"] + df["REB"] + df["AST"] * 2 + (df["STL"] + df["BLK"]) * 4 - df["TOV"] * 2 + df["FG3M"] + df["FGM"] * 2 + df["FTM"] - df["FTA"] - df["FGA"]
-    df["FPTS/MIN"] = round(df["FPTS"] / df["MIN"], 3)
-    df["AST:TOV"] = np.where(
-        df["TOV"] == 0,       # if turnovers are zero
-        np.nan,               # or you could use np.inf, 0, etc.
-        round(df["AST"] / df["TOV"], 3)
-    )
-
-    df["TS%"] = np.where(
-        (df["FGA"] + 0.44 * df["FTA"]) == 0,
-        np.nan,
-        round(df["PTS"] / (2 * (df["FGA"] + 0.44 * df["FTA"])), 3)
-    )
-    return df
-
 def get_all_teams():
     # may not be used
     df = pd.DataFrame(teams.get_teams())
     print(df)
+
+
+class Player:
+    def __init__(self, player_id, name):
+        self.id = player_id
+        self.name = name
+        self.igs = self.individual_game_stats()
+
+    def show_avg_fpts_by_season(self, season_id):
+        s = self.igs["FPTS/MIN"]
+        total = s.sum()
+        count = s.count()
+        return total / count
+
+
+    def individual_game_stats(self):
+        """Data per individual game"""
+        games = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='P', player_id_nullable=self.id)
+        games_df = pd.DataFrame(games.get_data_frames()[0])
+        df = games_df[["PLAYER_ID", "SEASON_ID", 'TEAM_ID', 'MATCHUP', "GAME_DATE", "FTA", "FTM", "FGA", "FGM", "FG3A", "FG3M", "MIN", "REB", "AST", "STL", "BLK", "TOV", "PTS"]].copy()
+        df["FPTS"] = df["PTS"] + df["REB"] + df["AST"] * 2 + (df["STL"] + df["BLK"]) * 4 - df["TOV"] * 2 + df["FG3M"] + df["FGM"] * 2 + df["FTM"] - df["FTA"] - df["FGA"]
+        
+        df["FPTS/MIN"] = np.where(
+            df["MIN"] == 0,
+            np.nan,
+            round(df["FPTS"] / df["MIN"], 3)
+        )
+        
+        df["AST:TOV"] = np.where(
+            df["TOV"] == 0,       # if turnovers are zero
+            np.nan,               # or you could use np.inf, 0, etc.
+            round(df["AST"] / df["TOV"], 3)
+        )
+
+        df["TS%"] = np.where(
+            (df["FGA"] + 0.44 * df["FTA"]) == 0,
+            np.nan,
+            round(df["PTS"] / (2 * (df["FGA"] + 0.44 * df["FTA"])), 3)
+        )
+        return df
+
+    def historical_stats(self):
+        """Data per season"""
+        career = playercareerstats.PlayerCareerStats(player_id=self.id)
+        careerdf = pd.DataFrame(career.get_data_frames()[0])
+        print(careerdf)
 
 def get_season_match_data(gameid: str):
     box = boxscorematchupsv3.BoxScoreMatchupsV3(game_id=gameid)
@@ -90,24 +119,21 @@ def graph_utility(df):
 
 
 if __name__ == "__main__":
-    career = playercareerstats.PlayerCareerStats(player_id='203999')
-    careerdf = pd.DataFrame(career.get_data_frames()[0])
-    print(careerdf)
-
     actives = get_all_active_players()
+    # nba_players = []
+    p = Player(203999, "Nikola Jokic")
+    print(p.igs.head())
+    print(f"Average FPTS/MIN: {p.show_avg_fpts_by_season(1)}")
+    p.historical_stats()[:5]
 
-    games = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='P', player_id_nullable=1628960)
-    gamesdf = pd.DataFrame(games.get_data_frames()[0])
-    igs = individual_game_stats(gamesdf)
-    print(igs.head())
 
+
+    # under construction
     # team = teamgamelog.TeamGameLog(team_id=1610612756)
-    team = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='T', team_id_nullable=1610612756)
-    teamdf = pd.DataFrame(team.get_data_frames()[0])
-    print(teamdf.head())    
-
-    get_season_match_data("0022500190")
-
+    # team = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='T', team_id_nullable=1610612756)
+    # teamdf = pd.DataFrame(team.get_data_frames()[0])
+    # print(teamdf.head())  
+    # get_season_match_data("0022500190")
     # get_all_teams()
     # graph_utility(igs[:25])
 
