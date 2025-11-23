@@ -1,3 +1,4 @@
+import time
 from nba_api.stats.endpoints import playercareerstats
 from nba_api.stats.endpoints import leaguegamefinder
 from nba_api.stats.static import players
@@ -7,6 +8,7 @@ from nba_api.stats.endpoints import boxscorematchupsv3
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from requests import ReadTimeout
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -32,6 +34,15 @@ pd.set_option('display.max_rows', None)
 # df = boxscore.get_data_frames()[0]
 # print(df.head())
 
+def trim_percentile(values, low=10, high=90):
+    values = np.array(values)
+    if len(values) == 0:
+        return values
+    lo = np.percentile(values, low)
+    hi = np.percentile(values, high)
+    return values[(values >= lo) & (values <= hi)]
+
+
 def get_all_active_players():
     df = pd.DataFrame(players.get_active_players())
     df = df[["id", "full_name"]]
@@ -50,43 +61,70 @@ class Player:
         self.igs = self.individual_game_stats()
 
     def show_avg_fpts_by_season(self, season_id):
-        s = self.igs["FPTS/MIN"]
-        total = s.sum()
-        count = s.count()
-        return total / count
+        df = self.igs[self.igs["SEASON_ID"].astype(str) == str(season_id)]
+        s = df["FPTS/MIN"]
+        return s.mean()
+    
+    def show_avg_fpts_by_season_trimmed(self, season_id):
+        df = self.igs[self.igs["SEASON_ID"].astype(str) == str(season_id)]
+        vals = df["FPTS/MIN"].to_numpy()
+
+        trimmed = trim_percentile(vals, low=10, high=90)
+
+        if len(vals) == 0:
+            return None
+
+        return trimmed.mean() if len(trimmed) > 0 else None
+
 
 
     def individual_game_stats(self):
-        """Data per individual game"""
-        games = leaguegamefinder.LeagueGameFinder(player_or_team_abbreviation='P', player_id_nullable=self.id)
-        games_df = pd.DataFrame(games.get_data_frames()[0])
-        df = games_df[["PLAYER_ID", "SEASON_ID", 'TEAM_ID', 'MATCHUP', "GAME_DATE", "FTA", "FTM", "FGA", "FGM", "FG3A", "FG3M", "MIN", "REB", "AST", "STL", "BLK", "TOV", "PTS"]].copy()
-        df["FPTS"] = df["PTS"] + df["REB"] + df["AST"] * 2 + (df["STL"] + df["BLK"]) * 4 - df["TOV"] * 2 + df["FG3M"] + df["FGM"] * 2 + df["FTM"] - df["FTA"] - df["FGA"]
-        
-        df["FPTS/MIN"] = np.where(
-            df["MIN"] == 0,
-            np.nan,
-            round(df["FPTS"] / df["MIN"], 3)
-        )
-        
-        df["AST:TOV"] = np.where(
-            df["TOV"] == 0,       # if turnovers are zero
-            np.nan,               # or you could use np.inf, 0, etc.
-            round(df["AST"] / df["TOV"], 3)
-        )
+        """Fetches data per individual game with retries on timeout"""
+        for attempt in range(1, 3):
+            try:
+                games = leaguegamefinder.LeagueGameFinder(
+                    player_or_team_abbreviation='P',
+                    player_id_nullable=self.id
+                )
+                games_df = pd.DataFrame(games.get_data_frames()[0])
 
-        df["TS%"] = np.where(
-            (df["FGA"] + 0.44 * df["FTA"]) == 0,
-            np.nan,
-            round(df["PTS"] / (2 * (df["FGA"] + 0.44 * df["FTA"])), 3)
-        )
-        return df
+                if games_df.empty:
+                    return pd.DataFrame()  # player has no games
+
+                # select and calculate stats
+                df = games_df[["PLAYER_ID", "SEASON_ID", 'TEAM_ID', 'MATCHUP', "GAME_DATE",
+                               "FTA", "FTM", "FGA", "FGM", "FG3A", "FG3M", "MIN",
+                               "REB", "AST", "STL", "BLK", "TOV", "PTS"]].copy()
+
+                # Fantasy points
+                df["FPTS"] = df["PTS"] + df["REB"] + df["AST"]*2 + (df["STL"]+df["BLK"])*4 \
+                             - df["TOV"]*2 + df["FG3M"] + df["FGM"]*2 + df["FTM"] - df["FTA"] - df["FGA"]
+
+                # FPTS per minute
+                df["FPTS/MIN"] = np.where(df["MIN"]==0, np.nan, round(df["FPTS"] / df["MIN"], 3))
+
+                # AST:TOV ratio
+                df["AST:TOV"] = np.where(df["TOV"]==0, np.nan, round(df["AST"] / df["TOV"], 3))
+
+                # True Shooting %
+                df["TS%"] = np.where((df["FGA"] + 0.44 * df["FTA"]) == 0, np.nan,
+                                     round(df["PTS"] / (2 * (df["FGA"] + 0.44 * df["FTA"])), 3))
+                return df
+
+            except ReadTimeout:
+                print(f"Timeout for player {self.name} (ID: {self.id}), attempt {attempt}/{3}")
+                time.sleep(1)
+
+        # if all retries fail
+        print(f"Failed to fetch games for player {self.name} after {3} attempts")
+        return pd.DataFrame()
+
 
     def historical_stats(self):
         """Data per season"""
         career = playercareerstats.PlayerCareerStats(player_id=self.id)
         careerdf = pd.DataFrame(career.get_data_frames()[0])
-        print(careerdf)
+        print(careerdf.head())
 
 def get_season_match_data(gameid: str):
     box = boxscorematchupsv3.BoxScoreMatchupsV3(game_id=gameid)
@@ -119,12 +157,37 @@ def graph_utility(df):
 
 
 if __name__ == "__main__":
-    actives = get_all_active_players()
+    # actives = get_all_active_players()
     # nba_players = []
-    p = Player(203999, "Nikola Jokic")
-    print(p.igs.head())
-    print(f"Average FPTS/MIN: {p.show_avg_fpts_by_season(1)}")
-    p.historical_stats()[:5]
+    # for row in actives.itertuples():
+    #     p = Player(row.id, row.full_name)
+    #     print(p.name, end=" ")
+
+    #     if p.igs.empty:
+    #         continue
+
+    #     avg = p.show_avg_fpts_by_season(22025)
+    #     trimmed = p.show_avg_fpts_by_season_trimmed(22025)
+
+    #     if avg is None:   # skip players with no games
+    #         continue
+
+    #     nba_players.append({
+    #         "player": p,
+    #         "name": row.full_name,
+    #         "avg_fpts_min": avg,
+    #         "trimmed_fpts_min": trimmed
+    #     })
+    # df = pd.DataFrame(nba_players)
+    # df = df.sort_values("avg_fpts_min", ascending=False)
+    # print(df)
+
+    print(get_all_active_players())
+
+
+    # print(f"Average FPTS/MIN: {p.show_avg_fpts_by_season(22025)}")
+    # print(f"Average FPTS/MIN: {p.show_avg_fpts_by_season_trimmed(22025)}")
+    # p.historical_stats()
 
 
 
