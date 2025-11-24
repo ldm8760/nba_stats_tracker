@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from requests import ReadTimeout
+from flask import Flask, request, jsonify, render_template, send_from_directory
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -155,8 +156,25 @@ def graph_utility(df):
     plt.tight_layout()
     plt.show()
 
+app = Flask(__name__)
+
+@app.route("/static/js/<path:filename>")
+def serve_js(filename):
+    return send_from_directory("static/js", filename, mimetype="application/javascript")
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+@app.route("/getBron", methods=['GET'])
+def send_player():
+    return jsonify({"name": "Lebron James", "avg_fpts": 40}), 200
+
+
 
 if __name__ == "__main__":
+    app.run(debug=True)
+
     # actives = get_all_active_players()
     # nba_players = []
     # for row in actives.itertuples():
@@ -182,7 +200,7 @@ if __name__ == "__main__":
     # df = df.sort_values("avg_fpts_min", ascending=False)
     # print(df)
 
-    print(get_all_active_players())
+    # print(get_all_active_players())
 
 
     # print(f"Average FPTS/MIN: {p.show_avg_fpts_by_season(22025)}")
