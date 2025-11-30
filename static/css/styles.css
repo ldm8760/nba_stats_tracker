@@ -4,4 +4,9 @@
     padding: 20px;
     border-radius: 8px;
     text-align: center;
+    margin: 10px;
+}
+
+.float_left {
+    float: left;
 }

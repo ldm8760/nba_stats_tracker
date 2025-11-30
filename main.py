@@ -15,26 +15,6 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 # pd.set_option('display.width', None)
 
-
-
-
-# ud = df[["PLAYER_ID", "TEAM_ID", "GP", "GS", "FGM", "FG3M", "FTM", "MIN", "REB", "AST", "STL", "BLK", "TOV", "PTS"]]
-# ud means usefulData
-
-# ud["PTC"] = ud["FGM"] + ud["FTM"]
-# ud = ud.copy()
-# ud = ud["FGM"] + ud["FTM"]
-# print(ud)
-
-
-# gx = (ud["PTC"] + ud["REB"] + ud["AST"] + ud["STL"]) / ud["MIN"]
-
-# game_id = "0022400001"  # Example: 2024–25 regular season opener
-
-# boxscore = boxscoretraditionalv2.NBAStatsHTTP()
-# df = boxscore.get_data_frames()[0]
-# print(df.head())
-
 def trim_percentile(values, low=10, high=90):
     values = np.array(values)
     if len(values) == 0:
@@ -64,7 +44,7 @@ class Player:
     def show_avg_fpts_by_season(self, season_id):
         df = self.igs[self.igs["SEASON_ID"].astype(str) == str(season_id)]
         s = df["FPTS/MIN"]
-        return s.mean()
+        return round(s.mean(), 3)
     
     def show_avg_fpts_by_season_trimmed(self, season_id):
         df = self.igs[self.igs["SEASON_ID"].astype(str) == str(season_id)]
@@ -87,15 +67,12 @@ class Player:
                     player_or_team_abbreviation='P',
                     player_id_nullable=self.id
                 )
-                games_df = pd.DataFrame(games.get_data_frames()[0])
+                df = pd.DataFrame(games.get_data_frames()[0])
 
-                if games_df.empty:
+                if df.empty:
                     return pd.DataFrame()  # player has no games
-
-                # select and calculate stats
-                df = games_df[["PLAYER_ID", "SEASON_ID", 'TEAM_ID', 'MATCHUP', "GAME_DATE",
-                               "FTA", "FTM", "FGA", "FGM", "FG3A", "FG3M", "MIN",
-                               "REB", "AST", "STL", "BLK", "TOV", "PTS"]].copy()
+                
+                df = df.copy()
 
                 # Fantasy points
                 df["FPTS"] = df["PTS"] + df["REB"] + df["AST"]*2 + (df["STL"]+df["BLK"])*4 \
@@ -166,9 +143,19 @@ def serve_js(filename):
 def home():
     return render_template("index.html")
 
-@app.route("/getBron", methods=['GET'])
-def send_player():
-    return jsonify({"name": "Lebron James", "avg_fpts": 40}), 200
+@app.route("/pull5", methods=['GET'])
+def send_players():
+    actives = get_all_active_players()
+    nba_players = []
+    for i in range(5):
+        p = Player(actives.iloc[i]["id"], actives.iloc[i]["full_name"])
+        if p.igs.empty:
+            continue
+        avg = p.show_avg_fpts_by_season(22025)
+        print(p.igs.head())
+
+        nba_players.append({"name": p.name, "avg_fpts/min": avg})
+    return jsonify(nba_players), 200
 
 
 

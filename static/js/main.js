@@ -6,17 +6,26 @@ const resultDiv = document.getElementById("result");
 
 myButton.addEventListener("click", async () => {
     try {
-        const response = await fetch(`/getBron`);
+        const response = await fetch(`/pull5`);
         const data = await response.json();
         if (data.error) {
             alert(data.error);
         } else {
-            resultDiv.innerHTML = `
-                <div class="card">
-                    <strong>Name: </strong>${data.name}<br>
-                    <strong>Average FPTS: </strong>${data.avg_fpts}<br>
-                </div>
-            `;
+            for (let i = 0; i < data.length; i++) {
+                resultDiv.innerHTML += `
+                    <div class="card">
+                        <div class="float_left player_name">
+                            ${data[i].name}
+                        </div>
+                        <div class="titles">
+                            <strong>Average FPTS/MIN:</strong>
+                        </div>
+                        <div class="stats">
+                            ${data[i]["avg_fpts/min"]}
+                        </div>
+                    </div>
+                `;
+            }
         }
     } catch (error) {
         alert(error);
