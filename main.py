@@ -150,11 +150,16 @@ def send_players():
     for i in range(5):
         p = Player(actives.iloc[i]["id"], actives.iloc[i]["full_name"])
         if p.igs.empty:
+            nba_players.append({"name": p.name, "avg_fpts/min": None, "points": None, 
+                                "rebounds": None, "assists": None, "steals": None, "blocks": None, 
+                                "turnovers": None})
             continue
         avg = p.show_avg_fpts_by_season(22025)
-        print(p.igs.head())
 
-        nba_players.append({"name": p.name, "avg_fpts/min": avg})
+        nba_players.append({"name": p.name, "avg_fpts/min": avg, "points": round(p.igs["PTS"].mean(), 2), 
+                            "rebounds": round(p.igs["REB"].mean(), 2), "assists": round(p.igs["AST"].mean(), 2), 
+                            "steals": round(p.igs["STL"].mean(), 2), "blocks": round(p.igs["BLK"].mean(), 2), 
+                            "turnovers": round(p.igs["TOV"].mean(), 2)})
     return jsonify(nba_players), 200
 
 

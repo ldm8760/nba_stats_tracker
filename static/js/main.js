@@ -13,15 +13,37 @@ myButton.addEventListener("click", async () => {
         } else {
             for (let i = 0; i < data.length; i++) {
                 resultDiv.innerHTML += `
-                    <div class="card">
-                        <div class="float_left player_name">
-                            ${data[i].name}
+                    <div class="grid-container">
+                        <div class="grid-name">
+                            <p id="name">${data[i]["name"]}</p>
                         </div>
-                        <div class="titles">
-                            <strong>Average FPTS/MIN:</strong>
+                        <div class="grid-item">
+                            <p class="data-label">Average FPTS/MIN</p>
+                            <p class="data">${data[i]["avg_fpts/min"]}</p>
                         </div>
-                        <div class="stats">
-                            ${data[i]["avg_fpts/min"]}
+                        <div class="grid-item">
+                            <p class="data-label">PTS</p>
+                            <p class="data">${data[i]["points"]}</p>
+                        </div>
+                        <div class="grid-item">
+                            <p class="data-label">REB</p>
+                            <p class="data">${data[i]["rebounds"]}</p>
+                        </div>
+                        <div class="grid-item">
+                            <p class="data-label">AST</p>
+                            <p class="data">${data[i]["assists"]}</p>
+                        </div>
+                        <div class="grid-item">
+                            <p class="data-label">STL</p>
+                            <p class="data">${data[i]["steals"]}</p>
+                        </div>
+                        <div class="grid-item">
+                            <p class="data-label">BLK</p>
+                            <p class="data">${data[i]["blocks"]}</p>
+                        </div>
+                        <div class="grid-item">
+                            <p class="data-label">TO</p>
+                            <p class="data">${data[i]["turnovers"]}</p>
                         </div>
                     </div>
                 `;

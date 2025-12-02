@@ -1,12 +1,40 @@
-.card {
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(8, auto);
     border: 1px solid #ddd;
     background-color: #f9f9f9;
-    padding: 20px;
     border-radius: 8px;
     text-align: center;
-    margin: 10px;
+    width: fit-content;
+    margin: auto;
 }
 
-.float_left {
+.grid-item {
+    padding: 10px;
+    margin: 10px;
+    font-size: 16px;
+    /* border: 1px solid #ccc; */
+}
+
+.grid-name {
+    font-weight: bold;
+    font-size: 18px;
+    width: 250px;
+}
+
+#name {
     float: left;
+    font-weight: bold;
+    font-size: 18px;
+    margin-left: 10px;
+}
+
+.data-label {
+    font-weight: bold;
+    margin: 0px 10px 0px 10px;
+}
+
+.data {
+    font-size: 16px;
+    margin: 0px;
 }
