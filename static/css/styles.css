@@ -8,6 +8,10 @@
     width: fit-content;
     margin: auto;
 }
+.grid-container:hover {
+    background-color: #f1f1f1;
+    transform: scale(1.02);
+}
 
 .grid-item {
     padding: 10px;

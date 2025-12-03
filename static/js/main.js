@@ -6,8 +6,10 @@ const resultDiv = document.getElementById("result");
 
 myButton.addEventListener("click", async () => {
     try {
-        const response = await fetch(`/pull5`);
+        const response = await fetch(`/pull`);
         const data = await response.json();
+
+        resultDiv.innerHTML = "";
         if (data.error) {
             alert(data.error);
         } else {
@@ -48,6 +50,15 @@ myButton.addEventListener("click", async () => {
                     </div>
                 `;
             }
+
+            const gridContainers = document.querySelectorAll(".grid-container");
+            gridContainers.forEach((item) => {
+                item.addEventListener("click", () => {
+                    alert("clicked");
+                    // call new page to players page here,
+                    // will have stats and graphs
+                });
+            });
         }
     } catch (error) {
         alert(error);

@@ -27,7 +27,7 @@ def trim_percentile(values, low=10, high=90):
 def get_all_active_players():
     df = pd.DataFrame(players.get_active_players())
     df = df[["id", "full_name"]]
-    return df
+    return df.to_dict(orient="records")
 
 def get_all_teams():
     # may not be used
@@ -57,41 +57,37 @@ class Player:
 
         return trimmed.mean() if len(trimmed) > 0 else None
 
-
-
     def individual_game_stats(self):
         """Fetches data per individual game with retries on timeout"""
-        for attempt in range(1, 3):
-            try:
-                games = leaguegamefinder.LeagueGameFinder(
-                    player_or_team_abbreviation='P',
-                    player_id_nullable=self.id
-                )
-                df = pd.DataFrame(games.get_data_frames()[0])
+        try:
+            games = leaguegamefinder.LeagueGameFinder(
+                player_or_team_abbreviation='P',
+                player_id_nullable=self.id
+            )
+            df = pd.DataFrame(games.get_data_frames()[0])
 
-                if df.empty:
-                    return pd.DataFrame()  # player has no games
-                
-                df = df.copy()
+            if df.empty:
+                return pd.DataFrame()  # player has no games
+            
+            df = df.copy()
 
-                # Fantasy points
-                df["FPTS"] = df["PTS"] + df["REB"] + df["AST"]*2 + (df["STL"]+df["BLK"])*4 \
-                             - df["TOV"]*2 + df["FG3M"] + df["FGM"]*2 + df["FTM"] - df["FTA"] - df["FGA"]
+            # Fantasy points
+            df["FPTS"] = df["PTS"] + df["REB"] + df["AST"]*2 + (df["STL"]+df["BLK"])*4 \
+                            - df["TOV"]*2 + df["FG3M"] + df["FGM"]*2 + df["FTM"] - df["FTA"] - df["FGA"]
 
-                # FPTS per minute
-                df["FPTS/MIN"] = np.where(df["MIN"]==0, np.nan, round(df["FPTS"] / df["MIN"], 3))
+            # FPTS per minute
+            df["FPTS/MIN"] = np.where(df["MIN"]==0, np.nan, round(df["FPTS"] / df["MIN"], 3))
 
-                # AST:TOV ratio
-                df["AST:TOV"] = np.where(df["TOV"]==0, np.nan, round(df["AST"] / df["TOV"], 3))
+            # AST:TOV ratio
+            df["AST:TOV"] = np.where(df["TOV"]==0, np.nan, round(df["AST"] / df["TOV"], 3))
 
-                # True Shooting %
-                df["TS%"] = np.where((df["FGA"] + 0.44 * df["FTA"]) == 0, np.nan,
-                                     round(df["PTS"] / (2 * (df["FGA"] + 0.44 * df["FTA"])), 3))
-                return df
+            # True Shooting %
+            df["TS%"] = np.where((df["FGA"] + 0.44 * df["FTA"]) == 0, np.nan,
+                                    round(df["PTS"] / (2 * (df["FGA"] + 0.44 * df["FTA"])), 3))
+            return df
 
-            except ReadTimeout:
-                print(f"Timeout for player {self.name} (ID: {self.id}), attempt {attempt}/{3}")
-                time.sleep(1)
+        except ReadTimeout:
+            time.sleep(1)
 
         # if all retries fail
         print(f"Failed to fetch games for player {self.name} after {3} attempts")
@@ -143,12 +139,13 @@ def serve_js(filename):
 def home():
     return render_template("index.html")
 
-@app.route("/pull5", methods=['GET'])
+@app.route("/pull", methods=['GET'])
 def send_players():
     actives = get_all_active_players()
     nba_players = []
-    for i in range(5):
-        p = Player(actives.iloc[i]["id"], actives.iloc[i]["full_name"])
+    limit = 0
+    for player in actives:
+        p = Player(player["id"], player["full_name"])
         if p.igs.empty:
             nba_players.append({"name": p.name, "avg_fpts/min": None, "points": None, 
                                 "rebounds": None, "assists": None, "steals": None, "blocks": None, 
@@ -160,6 +157,9 @@ def send_players():
                             "rebounds": round(p.igs["REB"].mean(), 2), "assists": round(p.igs["AST"].mean(), 2), 
                             "steals": round(p.igs["STL"].mean(), 2), "blocks": round(p.igs["BLK"].mean(), 2), 
                             "turnovers": round(p.igs["TOV"].mean(), 2)})
+        limit += 1
+        if limit >= 5:
+            break
     return jsonify(nba_players), 200
 
 
