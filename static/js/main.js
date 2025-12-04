@@ -54,7 +54,7 @@ myButton.addEventListener("click", async () => {
             const gridContainers = document.querySelectorAll(".grid-container");
             gridContainers.forEach((item) => {
                 item.addEventListener("click", () => {
-                    alert("clicked");
+                    window.location.href = `/player/${data[i]["id"]}`;
                     // call new page to players page here,
                     // will have stats and graphs
                 });
