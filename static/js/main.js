@@ -50,13 +50,9 @@ myButton.addEventListener("click", async () => {
                     </div>
                 `;
             }
-
-            const gridContainers = document.querySelectorAll(".grid-container");
-            gridContainers.forEach((item) => {
+            document.querySelectorAll(".grid-container").forEach((item, i) => {
                 item.addEventListener("click", () => {
-                    window.location.href = `/player/${data[i]["id"]}`;
-                    // call new page to players page here,
-                    // will have stats and graphs
+                    window.location.href = `/player/${data[i].id}`;
                 });
             });
         }

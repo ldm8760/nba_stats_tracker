@@ -4,8 +4,29 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Document</title>
+        <link
+            rel="stylesheet"
+            href="//cdn.datatables.net/2.3.5/css/dataTables.dataTables.min.css"
+        />
+        <script type="module" defer src="../static/js/player.js"></script>
     </head>
     <body>
-        <table class="data-table"></table>
+        <p>TestTitle</p>
+        <p>Player ID: {{ player_id }}</p>
+        <table id="myTable">
+            <thead>
+                <tr>
+                    <th>Column 1</th>
+                    <th>Column 2</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Data 1</td>
+                    <td>Data 2</td>
+                </tr>
+                <!-- More rows -->
+            </tbody>
+        </table>
     </body>
 </html>

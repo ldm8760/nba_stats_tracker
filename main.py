@@ -162,9 +162,11 @@ def send_players():
             break
     return jsonify(nba_players), 200
 
-@app.route("/player-page/<int:player_id>", methods=['GET'])
+@app.route("/player/<int:player_id>", methods=['GET'])
 def get_player_page(player_id):
     return render_template("player.html", player_id=player_id)
+
+# @app.route("get-id-from-name")
 
 
 

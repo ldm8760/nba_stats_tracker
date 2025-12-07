@@ -1,3 +1,5 @@
+@import url("//cdn.datatables.net/2.3.5/css/dataTables.dataTables.min.css");
+
 .grid-container {
     display: grid;
     grid-template-columns: repeat(8, auto);
